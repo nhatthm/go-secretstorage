@@ -1,0 +1,14 @@
+dry-run: false
+with-expecter: false
+mockname: "{{.InterfaceName}}"
+filename: "{{ .InterfaceName | snakecase }}.go"
+dir: "./mock"
+outpkg: mock
+packages:
+  go.nhat.io/secretstorage:
+    config:
+      include-regex: ".+"
+      exclude-regex: "Option|.+(Func|Option)"
+  github.com/zalando/go-keyring:
+    config:
+      all: true

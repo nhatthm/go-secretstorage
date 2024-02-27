@@ -1,0 +1,113 @@
+---
+name: test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  GO111MODULE: "on"
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      go-latest-version: ${{ steps.find-go-version.outputs.go-latest-version }}
+      go-supported-versions: ${{ steps.find-go-version.outputs.go-supported-versions }}
+    steps:
+      - name: Checkout code
+        uses: nhatthm/gh-actions/checkout@master
+
+      - id: find-go-version
+        name: Find Go version
+        uses: nhatthm/gh-actions/find-go-version@master
+
+  test-linux:
+    name: test-ubuntu (${{ matrix.go-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ${{ fromJson(needs.setup.outputs.go-supported-versions) }}
+    runs-on: ubuntu-latest
+    container:
+      image: nhatthm/ubuntu-keyring:20.04
+      options: --privileged
+    needs: [ setup ]
+    env:
+      GO_LATEST_VERSION: ${{ needs.setup.outputs.go-latest-version }}
+    steps:
+      - name: Checkout code
+        uses: nhatthm/gh-actions/checkout@master
+
+      - name: Install Go
+        uses: nhatthm/gh-actions/setup-go@master
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Test
+        id: test
+        run: |
+          mkdir -p /github/home/.cache/
+          mkdir -p /github/home/.local/share/keyrings/
+          chmod 700 -R /github/home/.local/
+          echo 'somecredstorepass' | gnome-keyring-daemon --unlock
+          make test
+        shell: dbus-run-session -- bash --noprofile --norc -eo pipefail {0}
+
+      - name: Upload code coverage (unit)
+        if: matrix.go-version == env.GO_LATEST_VERSION
+        uses: nhatthm/gh-actions/codecov@master
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./unit.coverprofile
+          flags: unittests-${{ runner.os }}
+
+      #- name: Upload code coverage (features)
+      #  if: matrix.go-version == env.GO_LATEST_VERSION
+      #  uses: nhatthm/gh-actions/codecov@master
+      #  with:
+      #    token: ${{ secrets.CODECOV_TOKEN }}
+      #    file: ./features.coverprofile
+      #    flags: featurestests-${{ runner.os }}
+
+  test-other:
+    name: test-${{ matrix.os }} (${{ matrix.go-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos, windows ]
+        go-version: ${{ fromJson(needs.setup.outputs.go-supported-versions) }}
+    runs-on: ${{ matrix.os }}-latest
+    needs: [ setup ]
+    env:
+      GO_LATEST_VERSION: ${{ needs.setup.outputs.go-latest-version }}
+    steps:
+      - name: Checkout code
+        uses: nhatthm/gh-actions/checkout@master
+
+      - name: Install Go
+        uses: nhatthm/gh-actions/setup-go@master
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Test
+        run: |
+          make test
+
+      - name: Upload code coverage (unit)
+        if: matrix.go-version == env.GO_LATEST_VERSION
+        uses: nhatthm/gh-actions/codecov@master
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./unit.coverprofile
+          flags: unittests-${{ runner.os }}
+
+      #- name: Upload code coverage (features)
+      #  if: matrix.go-version == env.GO_LATEST_VERSION
+      #  uses: nhatthm/gh-actions/codecov@master
+      #  with:
+      #    token: ${{ secrets.CODECOV_TOKEN }}
+      #    file: ./features.coverprofile
+      #    flags: featurestests-${{ runner.os }}
