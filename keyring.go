@@ -98,6 +98,11 @@ func (ss *KeyringStorage[V]) Set(service string, key string, value V) error {
 		return fmt.Errorf("failed to marshal data for writing to keyring: %w", err)
 	}
 
+	// Delete the data because it could be multipart.
+	if err = ss.Delete(service, key); err != nil && !errors.Is(err, ErrNotFound) {
+		return fmt.Errorf("failed to delete old data in keyring: %w", errors.Unwrap(err))
+	}
+
 	length := len(d)
 	if length <= maxLength {
 		return ss.set(service, key, d)
