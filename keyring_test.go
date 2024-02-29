@@ -209,6 +209,9 @@ func TestKeyringStorage_Set_Failure(t *testing.T) {
 	key := randKey(12)
 
 	k := mock.MockKeyring(func(k *mock.Keyring) {
+		k.On("Get", t.Name(), key).
+			Return("", secretstorage.ErrNotFound)
+
 		k.On("Set", t.Name(), key, "value").
 			Return(assert.AnError)
 	})(t)
@@ -217,6 +220,41 @@ func TestKeyringStorage_Set_Failure(t *testing.T) {
 
 	err := s.Set(t.Name(), key, "value")
 	require.EqualError(t, err, `failed to write data to keyring: assert.AnError general error for testing`)
+}
+
+func TestKeyringStorage_Set_Failure_CouldNotGetOldDataForDeletion(t *testing.T) {
+	t.Parallel()
+
+	key := randKey(12)
+
+	k := mock.MockKeyring(func(k *mock.Keyring) {
+		k.On("Get", t.Name(), key).
+			Return("", assert.AnError)
+	})(t)
+
+	s := secretstorage.NewKeyringStorage[string](secretstorage.WithKeyring(k))
+
+	err := s.Set(t.Name(), key, "value")
+	require.EqualError(t, err, `failed to delete old data in keyring: assert.AnError general error for testing`)
+}
+
+func TestKeyringStorage_Set_Failure_CouldNotDeleteOldData(t *testing.T) {
+	t.Parallel()
+
+	key := randKey(12)
+
+	k := mock.MockKeyring(func(k *mock.Keyring) {
+		k.On("Get", t.Name(), key).
+			Return("value", nil)
+
+		k.On("Delete", t.Name(), key).
+			Return(assert.AnError)
+	})(t)
+
+	s := secretstorage.NewKeyringStorage[string](secretstorage.WithKeyring(k))
+
+	err := s.Set(t.Name(), key, "value")
+	require.EqualError(t, err, `failed to delete old data in keyring: assert.AnError general error for testing`)
 }
 
 func TestKeyringStorage_Set_Success_String(t *testing.T) {
@@ -289,7 +327,6 @@ func TestKeyringStorage_Set_Success_Multipart(t *testing.T) {
 	s := secretstorage.NewKeyringStorage[string]()
 
 	err := s.Set(t.Name(), key, data)
-
 	require.NoError(t, err)
 
 	d, err := keyring.Get(t.Name(), key)
@@ -314,6 +351,45 @@ func TestKeyringStorage_Set_Success_Multipart(t *testing.T) {
 	assert.Equal(t, data[4096:], part3)
 }
 
+func TestKeyringStorage_Set_Success_Multipart_DeleteOldData(t *testing.T) {
+	t.Parallel()
+
+	key := randKey(12)
+
+	removeSecretAtCleanup(t, key)
+	removeSecretAtCleanup(t, formatPage(key, 1))
+	removeSecretAtCleanup(t, formatPage(key, 2))
+	assertSecretNotFoundAtCleanup(t, formatPage(key, 3))
+
+	data := randString(6139)
+
+	s := secretstorage.NewKeyringStorage[string]()
+
+	err := s.Set(t.Name(), key, data)
+	require.NoError(t, err)
+
+	data = randString(3145)
+
+	err = s.Set(t.Name(), key, data)
+	require.NoError(t, err)
+
+	d, err := keyring.Get(t.Name(), key)
+	require.NoError(t, err)
+
+	expected := "application/multipart-secret; pages=2"
+	assert.Equal(t, expected, d)
+
+	part1, err := keyring.Get(t.Name(), formatPage(key, 1))
+
+	require.NoError(t, err)
+	assert.Equal(t, data[:2048], part1)
+
+	part2, err := keyring.Get(t.Name(), formatPage(key, 2))
+
+	require.NoError(t, err)
+	assert.Equal(t, data[2048:], part2)
+}
+
 func TestKeyringStorage_Set_Failure_Multipart_CouldNotSetPage1(t *testing.T) {
 	t.Parallel()
 
@@ -321,6 +397,9 @@ func TestKeyringStorage_Set_Failure_Multipart_CouldNotSetPage1(t *testing.T) {
 	data := randString(6139)
 
 	k := mock.MockKeyring(func(k *mock.Keyring) {
+		k.On("Get", t.Name(), key).
+			Return("", secretstorage.ErrNotFound)
+
 		k.On("Set", t.Name(), formatPage(key, 1), mock.Anything).
 			Return(assert.AnError)
 	})(t)
@@ -338,6 +417,9 @@ func TestKeyringStorage_Set_Failure_Multipart_CouldNotSetPage2(t *testing.T) {
 	data := randString(6139)
 
 	k := mock.MockKeyring(func(k *mock.Keyring) {
+		k.On("Get", t.Name(), key).
+			Return("", secretstorage.ErrNotFound)
+
 		k.On("Set", t.Name(), formatPage(key, 1), mock.Anything).
 			Return(nil)
 
@@ -360,6 +442,8 @@ func TestKeyringStorage_Set_Failure_Multipart_CouldNotSetMainPage(t *testing.T) 
 	data := randString(6139)
 
 	k := mock.MockKeyring(func(k *mock.Keyring) {
+		k.On("Get", t.Name(), key).Return("", secretstorage.ErrNotFound)
+
 		k.On("Set", t.Name(), formatPage(key, 1), mock.Anything).Return(nil)
 		k.On("Set", t.Name(), formatPage(key, 2), mock.Anything).Return(nil)
 		k.On("Set", t.Name(), formatPage(key, 3), mock.Anything).Return(nil)
@@ -375,6 +459,25 @@ func TestKeyringStorage_Set_Failure_Multipart_CouldNotSetMainPage(t *testing.T) 
 
 	err := s.Set(t.Name(), key, data)
 	require.EqualError(t, err, `failed to write data to keyring: assert.AnError general error for testing`)
+}
+
+func TestKeyringStorage_Set_Failure_Multipart_CouldNotDeletePage2(t *testing.T) {
+	t.Parallel()
+
+	key := randKey(12)
+	data := randString(6139)
+
+	k := mock.MockKeyring(func(k *mock.Keyring) {
+		k.On("Get", t.Name(), key).Return("application/multipart-secret; pages=2", nil)
+		k.On("Delete", t.Name(), formatPage(key, 1)).Return(nil)
+		k.On("Delete", t.Name(), formatPage(key, 2)).Return(assert.AnError)
+		k.On("Delete", t.Name(), key).Return(nil)
+	})(t)
+
+	s := secretstorage.NewKeyringStorage[string](secretstorage.WithKeyring(k))
+
+	err := s.Set(t.Name(), key, data)
+	require.EqualError(t, err, `failed to delete old data in keyring: assert.AnError general error for testing`)
 }
 
 func TestKeyringStorage_Delete_Failure_SecretNotFound(t *testing.T) {
