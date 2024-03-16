@@ -6,7 +6,7 @@ toolchain go1.22.0
 
 require (
 	github.com/stretchr/testify v1.9.0
-	github.com/zalando/go-keyring v0.2.3
+	github.com/zalando/go-keyring v0.2.4
 	go.uber.org/multierr v1.11.0
 )
 
