@@ -315,6 +315,8 @@ func unmarshalData(v string, dest any) error {
 	return nil
 }
 
+var _ keyring.Keyring = (*defaultKeyring)(nil)
+
 type defaultKeyring struct{}
 
 func (defaultKeyring) Set(service, user, password string) error {
@@ -327,4 +329,8 @@ func (defaultKeyring) Get(service, user string) (string, error) {
 
 func (defaultKeyring) Delete(service, user string) error {
 	return keyring.Delete(service, user) //nolint: wrapcheck
+}
+
+func (defaultKeyring) DeleteAll(service string) error {
+	return keyring.DeleteAll(service)
 }
