@@ -8,7 +8,7 @@ packages:
   go.nhat.io/secretstorage:
     config:
       include-regex: ".+"
-      exclude-regex: "Option|.+(Func|Option)"
+      exclude-regex: "configurableKeyringStorage|Option|.+(Func|Option)"
   github.com/zalando/go-keyring:
     config:
       all: true
