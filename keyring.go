@@ -40,7 +40,7 @@ type KeyringStorage[V any] struct {
 func (ss *KeyringStorage[V]) mutex(service, key string) *sync.RWMutex {
 	m, _ := ss.mu.LoadOrStore(fmt.Sprintf("%s:%s", service, key), &sync.RWMutex{})
 
-	return m.(*sync.RWMutex) //nolint: forcetypeassert
+	return m.(*sync.RWMutex) //nolint: errcheck,forcetypeassert
 }
 
 func (ss *KeyringStorage[V]) withKeyring(keyring keyring.Keyring) {
@@ -67,7 +67,7 @@ func (ss *KeyringStorage[V]) get(service string, key string) (V, error) {
 		}
 
 		if pages < minPages {
-			return result, fmt.Errorf("invalid secret pages: %d", pages) //nolint: goerr113
+			return result, fmt.Errorf("invalid secret pages: %d", pages) //nolint: err113
 		}
 
 		var sb strings.Builder
