@@ -2,8 +2,8 @@ MODULE_NAME=secretstorage
 
 VENDOR_DIR = vendor
 
-GOLANGCI_LINT_VERSION ?= v1.61.0
-MOCKERY_VERSION ?= v2.46.3
+GOLANGCI_LINT_VERSION ?= v2.4.0
+MOCKERY_VERSION ?= v2.53.2
 
 GO ?= go
 GOLANGCI_LINT ?= $(shell go env GOPATH)/bin/golangci-lint-$(GOLANGCI_LINT_VERSION)

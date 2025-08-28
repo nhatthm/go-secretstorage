@@ -32,7 +32,7 @@ jobs:
         go-version: ${{ fromJson(needs.setup.outputs.go-supported-versions) }}
     runs-on: ubuntu-latest
     container:
-      image: nhatthm/ubuntu-keyring:20.04
+      image: ghcr.io/nhatthm/ubuntu-keyring:20.04
       options: --privileged
     needs: [ setup ]
     env:
