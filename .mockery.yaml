@@ -1,14 +1,15 @@
-dry-run: false
-with-expecter: false
-mockname: "{{.InterfaceName}}"
+dir: mock
+structname: '{{.InterfaceName}}'
+pkgname: mock
 filename: "{{ .InterfaceName | snakecase }}.go"
-dir: "./mock"
-outpkg: mock
+template: testify
+template-data:
+  unroll-variadic: true
 packages:
-  go.nhat.io/secretstorage:
-    config:
-      include-regex: ".+"
-      exclude-regex: "configurableKeyringStorage|Option|.+(Func|Option)"
   github.com/zalando/go-keyring:
     config:
       all: true
+  go.nhat.io/secretstorage:
+    config:
+      exclude-interface-regex: configurableKeyringStorage|Option|.+(Func|Option)
+      include-interface-regex: .+
