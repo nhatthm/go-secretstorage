@@ -120,11 +120,7 @@ func (ss *KeyringStorage[V]) setMultipart(service string, key string, value stri
 	}()
 
 	for page = 1; page <= pages; page++ {
-		end := page * maxLength
-		if end > length {
-			end = length
-		}
-
+		end := min(page*maxLength, length)
 		data := value[(page-1)*maxLength : end]
 
 		if err = ss.keyring.Set(service, formatPage(key, page), data); err != nil {
