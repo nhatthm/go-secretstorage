@@ -1,0 +1,29 @@
+.mockery.yaml
+  h_1bffb29edaf571 5
+Makefile
+  h_1bffb29edaf571 3-4,66-70
+README.md
+  s_8829ef86c08a3d::t_6fbc6389d0fcae 7
+  s_8829ef86c08a3d::t_d7a6c762d3c47b 51,53,57-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "608a8faf744bb296e34943f018628a3ab26044a8",
+  "prompts": {},
+  "humans": {
+    "h_1bffb29edaf571": {
+      "author": "Nhat <contact@nhat.me>"
+    }
+  },
+  "sessions": {
+    "s_8829ef86c08a3d": {
+      "agent_id": {
+        "tool": "github-copilot-jetbrains",
+        "id": "1791231382017",
+        "model": "unknown"
+      },
+      "human_author": "Nhat <contact@nhat.me>"
+    }
+  }
+}
