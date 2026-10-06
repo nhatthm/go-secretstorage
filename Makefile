@@ -1,7 +1,7 @@
 MODULE_NAME=secretstorage
 
-GOLANGCI_LINT_VERSION ?= v2.13.0
-MOCKERY_VERSION ?= v3.7.4
+GOLANGCI_LINT_VERSION ?= v2.14.0
+MOCKERY_VERSION ?= v3.8.0
 
 GO ?= go
 GOLANGCI_LINT ?= $(shell go env GOPATH)/bin/golangci-lint-$(GOLANGCI_LINT_VERSION)
@@ -63,8 +63,11 @@ test-unit:
 #	@printf -- "$(OK_COLOR)==> integration test$(NO_COLOR)\n"
 #	$(Q)$(GO) test -gcflags=-l -coverprofile=integration.coverprofile -covermode=atomic -race -tags=integration ./...
 
-.PHONY: generate
-generate: $(MOCKERY)
+.PHONY: gen
+gen: gen-mocks
+
+.PHONY: gen-mocks
+gen-mocks: $(MOCKERY)
 	@printf -- "$(OK_COLOR)==> generate mocks$(NO_COLOR)\n"
 	$(Q)$(MOCKERY) --config .mockery.yaml
 
